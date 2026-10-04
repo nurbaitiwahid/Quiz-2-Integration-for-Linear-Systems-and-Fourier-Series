@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz 2: Integration for Linear Systems and Fourier Series</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh; padding: 20px; color: #333;
+}
+.container { max-width: 700px; margin: 0 auto; }
+.header { text-align: center; color: #fff; padding: 30px 20px; }
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.header .meta { font-size: 14px; opacity: 0.9; }
+.progress-bar { background: rgba(255,255,255,0.3); border-radius: 10px; height: 8px; margin: 20px 0; overflow: hidden; }
+.progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+.question { background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.question.active { display: block; }
+.q-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: #888; }
+.q-number { font-weight: 600; color: #667eea; }
+.q-text { font-size: 18px; font-weight: 600; line-height: 1.5; margin-bottom: 25px; color: #222; }
+.options { display: flex; flex-direction: column; gap: 12px; }
+.option-wrapper { display: flex; flex-direction: column; }
+.option {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px;
+  border: 2px solid #e8e8e8; border-radius: 12px; background: #fafafa;
+  cursor: pointer; transition: all 0.2s; text-align: left; font-size: 15px; width: 100%;
+}
+[dir="rtl"] .option { text-align: right; flex-direction: row-reverse; }
+.option:hover:not(.disabled) { border-color: #667eea; background: #f5f3ff; }
+.option.selected { border-color: #667eea; background: #ede9fe; }
+.option.correct { border-color: #22c55e; background: #dcfce7; }
+.option.incorrect { border-color: #ef4444; background: #fee2e2; }
+.option.disabled { cursor: default; }
+.option.show-correct { border-color: #22c55e; background: #dcfce7; }
+.opt-label {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%; background: #e8e8e8;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.option.selected .opt-label { background: #667eea; color: #fff; }
+.option.correct .opt-label { background: #22c55e; color: #fff; }
+.option.incorrect .opt-label { background: #ef4444; color: #fff; }
+.option.show-correct .opt-label { background: #22c55e; color: #fff; }
+.opt-text { padding-top: 5px; line-height: 1.5; }
+
+/* Individual option feedback */
+.option-feedback {
+  margin: 8px 0 4px 46px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+[dir="rtl"] .option-feedback { margin-left: 0; margin-right: 46px; }
+.option-feedback.correct-feedback {
+  background: #dcfce7;
+  border-left: 3px solid #22c55e;
+}
+.option-feedback.incorrect-feedback {
+  background: #fef3f2;
+  border-left: 3px solid #fca5a5;
+}
+[dir="rtl"] .option-feedback.correct-feedback,
+[dir="rtl"] .option-feedback.incorrect-feedback {
+  border-left: none;
+  border-right: 3px solid;
+}
+[dir="rtl"] .option-feedback.correct-feedback { border-right-color: #22c55e; }
+[dir="rtl"] .option-feedback.incorrect-feedback { border-right-color: #fca5a5; }
+.feedback-status {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback-status.correct { color: #166534; }
+.feedback-status.incorrect { color: #991b1b; }
+.feedback-rationale { color: #444; }
+
+/* Hint box */
+.hint-box {
+  margin: 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+.hint-toggle {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hint-toggle:hover { background: #fef3c7; }
+.hint-content {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.5;
+}
+.hint-box.show .hint-content {
+  padding: 0 16px 12px;
+  max-height: 200px;
+}
+
+
+.submit-btn {
+  margin-top: 20px; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,0.35); }
+.submit-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+.quiz-modal {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.62);
+  display: none; align-items: center; justify-content: center;
+  z-index: 9999; padding: 20px;
+}
+.quiz-modal.show { display: flex; }
+.quiz-modal-card {
+  width: min(460px, 100%); background: #fff; border-radius: 18px;
+  padding: 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.quiz-modal-icon { font-size: 48px; margin-bottom: 10px; }
+.quiz-modal-title { font-size: 26px; font-weight: 700; margin-bottom: 12px; color: #166534; }
+.quiz-modal-title.incorrect { color: #991b1b; }
+.quiz-modal-message { font-size: 16px; line-height: 1.6; color: #444; }
+.quiz-modal-close {
+  margin-top: 22px; width: 100%; padding: 13px; border: none;
+  border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+.next-btn {
+  margin-top: 20px; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none;
+  border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.next-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+.hidden { display: none !important; }
+.results { background: #fff; border-radius: 16px; padding: 40px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.results.active { display: block; }
+.results h2 { font-size: 28px; margin-bottom: 10px; color: #333; }
+.results .score { font-size: 64px; font-weight: 700; color: #667eea; margin: 20px 0; }
+.results .score-text { font-size: 18px; color: #666; margin-bottom: 30px; }
+.restart-btn {
+  padding: 14px 40px; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+/* Math CSS */
+.math, .math-block { font-family: "Cambria Math", "Times New Roman", Times, serif; font-style: italic; }
+.math-block { display: block; text-align: center; margin: 10px 0; font-size: 110%; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: 0.9em; }
+.frac-num { border-bottom: 1px solid currentColor; padding: 0 4px 2px; line-height: 1.2; }
+.frac-den { padding: 2px 4px 0; line-height: 1.2; }
+.sqrt { white-space: nowrap; }
+.sqrt-content { border-top: 1px solid currentColor; padding: 0 3px; margin-left: 2px; }
+sup, sub { font-size: 0.75em; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+
+/* Enhanced presentation for Questions 7-10 */
+.late-question .q-text { line-height: 1.65; }
+.late-question .q-text .math-display {
+  display: block;
+  text-align: center;
+  margin: 14px 0 8px;
+  font-size: 1.08em;
+  font-weight: 500;
+}
+.late-question .option {
+  min-height: 58px;
+  align-items: center;
+}
+.late-question .opt-text {
+  padding-top: 0;
+  line-height: 1.65;
+  font-size: 1.02em;
+}
+.late-question .option-feedback {
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Quiz 2: Integration for Linear Systems and Fourier Series</h1>
+    <div class="meta">10 questions</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+  <div id="quiz-container">
+        <div class="question" data-index="0">
+          <div class="q-header">
+            <span class="q-number">Question 1</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the result of evaluating the indefinite integral <span class="math">∫ (3t<sup>2</sup> - 4t + 5) dt</span>?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Apply the power rule to each component individually and remember to divide by the incremented exponent.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This expression omits integrating the constant term $5$, which requires attaching the variable factor $t$.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math">t<sup>3</sup> - 2t<sup>2</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This expression omits integrating the constant term <span class="math">5</span>, which requires attaching the variable factor <span class="math">t</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Applying the power rule term-by-term yields $\frac{3t^3}{3} - \frac{4t^2}{2} + 5t + C$, which simplifies directly to $t^3 - 2t^2 + 5t + C$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">t<sup>3</sup> - 2t<sup>2</sup> + 5t + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Applying the power rule term-by-term yields <span class="math"><span class="frac"><span class="frac-num">3t<sup>3</sup></span><span class="frac-den">3</span></span> - <span class="frac"><span class="frac-num">4t<sup>2</sup></span><span class="frac-den">2</span></span> + 5t + C</span>, which simplifies directly to <span class="math">t<sup>3</sup> - 2t<sup>2</sup> + 5t + C</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="This option stems from incrementing exponents without dividing each term by its new power value.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math">3t<sup>3</sup> - 4t<sup>2</sup> + 5t + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This option stems from incrementing exponents without dividing each term by its new power value.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="This result occurs when taking the derivative of the integrand rather than calculating its indefinite integral.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math">6t - 4 + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This result occurs when taking the derivative of the integrand rather than calculating its indefinite integral.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="1">
+          <div class="q-header">
+            <span class="q-number">Question 2</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the indefinite integral <span class="math">∫ 5e<sup>-2t</sup> dt</span>?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Recall the integration rule for exponential functions, where the exponent coefficient appears in the denominator.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This mistake comes from multiplying by the exponential constant $-2$ instead of dividing by it.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math">-10e<sup>-2t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This mistake comes from multiplying by the exponential constant <span class="math">-2</span> instead of dividing by it.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Integrating $A e^{at} dt$ yields $\frac{A}{a}e^{at} + C$, which gives $\frac{5}{-2}e^{-2t} + C = -\frac{5}{2}e^{-2t} + C$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">-<span class="frac"><span class="frac-num">5</span><span class="frac-den">2</span></span>e<sup>-2t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Integrating <span class="math">A e<sup>at</sup> dt</span> yields <span class="math"><span class="frac"><span class="frac-num">A</span><span class="frac-den">a</span></span>e<sup>at</sup> + C</span>, which gives <span class="math"><span class="frac"><span class="frac-num">5</span><span class="frac-den">-2</span></span>e<sup>-2t</sup> + C = -<span class="frac"><span class="frac-num">5</span><span class="frac-den">2</span></span>e<sup>-2t</sup> + C</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="This choice neglects the negative sign introduced when dividing by the exponential coefficient $a = -2$.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">5</span><span class="frac-den">2</span></span>e<sup>-2t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This choice neglects the negative sign introduced when dividing by the exponential coefficient <span class="math">a = -2</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Exponential integration leaves the inner power coefficient untouched, unlike the algebraic power rule.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math">-<span class="frac"><span class="frac-num">5</span><span class="frac-den">2</span></span>e<sup>-3t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Exponential integration leaves the inner power coefficient untouched, unlike the algebraic power rule.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="2">
+          <div class="q-header">
+            <span class="q-number">Question 3</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the value of the definite integral <span class="math">∫<sub>0</sub><sup>2</sup> 3t<sup>2</sup> dt</span>?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Find the general antiderivative using the power rule before plugging in the upper and lower boundaries.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This error occurs when forgetting to divide $3t^3$ by $3$ during antiderivative formation, evaluating $3(2^3)$ instead.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math">24</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This error occurs when forgetting to divide <span class="math">3t<sup>3</sup></span> by <span class="math">3</span> during antiderivative formation, evaluating <span class="math">3(2<sup>3</sup>)</span> instead.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="The antiderivative of $3t^2$ is $t^3$, and evaluating $[t^3]_0^2$ gives $2^3 - 0^3 = 8$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">8</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">The antiderivative of <span class="math">3t<sup>2</sup></span> is <span class="math">t<sup>3</sup></span>, and evaluating <span class="math">[t<sup>3</sup>]<sub>0</sub><sup>2</sup></span> gives <span class="math">2<sup>3</sup> - 0<sup>3</sup> = 8</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="This arises from substituting the limit into $6t$, which is the derivative rather than the antiderivative.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math">12</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This arises from substituting the limit into <span class="math">6t</span>, which is the derivative rather than the antiderivative.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="This result stems from an arithmetic error when raising $2$ to the power of $3$.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math">4</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This result stems from an arithmetic error when raising <span class="math">2</span> to the power of <span class="math">3</span>.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="3">
+          <div class="q-header">
+            <span class="q-number">Question 4</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">According to the time interval combination property, what is the evaluated result of <span class="math">∫<sub>1</sub><sup>2</sup> (3t<sup>2</sup> - 4) dt + ∫<sub>2</sub><sup>3</sup> (3t<sup>2</sup> - 4) dt</span>?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Combine the adjacent integration limits into a single continuous time interval before applying the fundamental theorem.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This error happens when neglecting to subtract the lower boundary's negative value $-3$ correctly.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math">15</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This error happens when neglecting to subtract the lower boundary's negative value <span class="math">-3</span> correctly.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Combining the adjacent intervals gives $\int_1^3 (3t^2 - 4) dt = [t^3 - 4t]_1^3 = (27 - 12) - (1 - 4) = 15 - (-3) = 18$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">18</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Combining the adjacent intervals gives <span class="math">∫<sub>1</sub><sup>3</sup> (3t<sup>2</sup> - 4) dt = [t<sup>3</sup> - 4t]<sub>1</sub><sup>3</sup> = (27 - 12) - (1 - 4) = 15 - (-3) = 18</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="This reflects a confusion with limit reversal laws, treating adjacent intervals as opposing canceling values.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math">0</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This reflects a confusion with limit reversal laws, treating adjacent intervals as opposing canceling values.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="This value results from evaluating only at the upper bound $t=3$ while omitting the lower bound subtraction step entirely.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math">12</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This value results from evaluating only at the upper bound <span class="math">t=3</span> while omitting the lower bound subtraction step entirely.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="4">
+          <div class="q-header">
+            <span class="q-number">Question 5</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the result of integrating <span class="math">∫ t e<sup>-t</sup> dt</span> using integration by parts?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Assign <span class="math">u</span> to the algebraic component and <span class="math">dv</span> to the exponential part before applying <span class="math">uv - ∫ v du</span>.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This leaves out the primary product term $u \cdot v$, keeping only the integrated residual portion.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math">-e<sup>-t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This leaves out the primary product term <span class="math">u · v</span>, keeping only the integrated residual portion.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="This choice results from a sign mistake when integrating the secondary term $-\int (-e^{-t}) dt$.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">-t e<sup>-t</sup> + e<sup>-t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This choice results from a sign mistake when integrating the secondary term <span class="math">-∫ (-e<sup>-t</sup>) dt</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Setting $u = t$ and $dv = e^{-t} dt$ gives $du = dt$ and $v = -e^{-t}$; applying $uv - \int v du$ yields $-t e^{-t} - \int (-e^{-t}) dt = -t e^{-t} - e^{-t} + C$.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math">-t e<sup>-t</sup> - e<sup>-t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Setting <span class="math">u = t</span> and <span class="math">dv = e<sup>-t</sup> dt</span> gives <span class="math">du = dt</span> and <span class="math">v = -e<sup>-t</sup></span>; applying <span class="math">uv - ∫ v du</span> yields <span class="math">-t e<sup>-t</sup> - ∫ (-e<sup>-t</sup>) dt = -t e<sup>-t</sup> - e<sup>-t</sup> + C</span>.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="This answer incorrectly drops the initial negative sign from $v = -e^{-t}$ in the $u \cdot v$ term.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math">t e<sup>-t</sup> - e<sup>-t</sup> + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This answer incorrectly drops the initial negative sign from <span class="math">v = -e<sup>-t</sup></span> in the <span class="math">u · v</span> term.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question" data-index="5">
+          <div class="q-header">
+            <span class="q-number">Question 6</span>
+            <span class="q-of">/ 10</span>
+          </div>
+          <div class="q-text">What is the result of evaluating the indefinite integral <span class="math">∫ 4cos(3t) dt</span>?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Remember that cosine integrates to positive sine, and the inner frequency factor must divide the coefficient.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="This option fails to transform the trigonometric function from cosine to sine.">
+            <span class="opt-label">A</span>
+            <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">4</span><span class="frac-den">3</span></span>cos(3t) + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This option fails to transform the trigonometric function from cosine to sine.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="This mistake comes from applying the sine integration sign convention (which yields negative cosine) to cosine.">
+            <span class="opt-label">B</span>
+            <span class="opt-text"><span class="math">-<span class="frac"><span class="frac-num">4</span><span class="frac-den">3</span></span>sin(3t) + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This mistake comes from applying the sine integration sign convention (which yields negative cosine) to cosine.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="This calculation incorrectly multiplies by the inner frequency factor instead of placing it in the denominator.">
+            <span class="opt-label">C</span>
+            <span class="opt-text"><span class="math">12sin(3t) + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">This calculation incorrectly multiplies by the inner frequency factor instead of placing it in the denominator.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="Integrating $\cos(at)$ gives $\frac{1}{a}\sin(at) + C$, so multiplying by constant $4$ produces $\frac{4}{3}\sin(3t) + C$.">
+            <span class="opt-label">D</span>
+            <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">4</span><span class="frac-den">3</span></span>sin(3t) + C</span></span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Integrating <span class="math">cos(at)</span> gives <span class="math"><span class="frac"><span class="frac-num">1</span><span class="frac-den">a</span></span>sin(at) + C</span>, so multiplying by constant <span class="math">4</span> produces <span class="math"><span class="frac"><span class="frac-num">4</span><span class="frac-den">3</span></span>sin(3t) + C</span>.</div>
+          </div>
+        </div>
+      </div>
+          <button class="submit-btn" disabled>✓ Submit Answer</button>
+          <button class="next-btn hidden">Next Question →</button>
+        </div>
+      
+        <div class="question late-question" data-index="6">
+  <div class="q-header">
+    <span class="q-number">Question 7</span>
+    <span class="q-of">/ 10</span>
+  </div>
+  <div class="q-text">What is the value of <span class="math-display">∫<sub>0</sub><sup>π</sup> cos(nt) dt</span> for any non-zero integer <span class="math">n</span>?</div>
+  <div class="hint-box">
+    <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">💡 Hint</button>
+    <div class="hint-content">Integrate <span class="math">cos(nt)</span> to obtain <span class="math">sin(nt)/n</span>, then use <span class="math">sin(nπ) = 0</span> for every integer <span class="math">n</span>.</div>
+  </div>
+  <div class="options">
+    <div class="option-wrapper">
+      <button class="option" data-label="A" data-correct="false" data-rationale="This expression is associated with the definite integral of <span class=&quot;math&quot;>sin(nt)</span>, not <span class=&quot;math&quot;>cos(nt)</span>. For <span class=&quot;math&quot;>cos(nt)</span>, the antiderivative is <span class=&quot;math&quot;>sin(nt)/n</span>.">
+        <span class="opt-label">A</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">1 − (−1)<sup>n</sup></span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="A"><div class="feedback-status"></div><div class="feedback-rationale">This expression is associated with the definite integral of <span class="math">sin(nt)</span>, not <span class="math">cos(nt)</span>. For <span class="math">cos(nt)</span>, the antiderivative is <span class="math">sin(nt)/n</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="B" data-correct="true" data-rationale="Integrating gives <span class=&quot;math&quot;>[sin(nt)/n]<sub>0</sub><sup>π</sup></span>. Since <span class=&quot;math&quot;>sin(nπ) = 0</span> and <span class=&quot;math&quot;>sin(0) = 0</span> for every integer <span class=&quot;math&quot;>n</span>, the definite integral is <span class=&quot;math&quot;>0</span>.">
+        <span class="opt-label">B</span>
+        <span class="opt-text"><span class="math">0</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="B"><div class="feedback-status"></div><div class="feedback-rationale">Integrating gives <span class="math">[sin(nt)/n]<sub>0</sub><sup>π</sup></span>. Since <span class="math">sin(nπ) = 0</span> and <span class="math">sin(0) = 0</span> for every integer <span class="math">n</span>, the definite integral is <span class="math">0</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="C" data-correct="false" data-rationale="This would require <span class=&quot;math&quot;>sin(nπ)</span> to equal <span class=&quot;math&quot;>1</span>, but <span class=&quot;math&quot;>sin(nπ) = 0</span> for every integer <span class=&quot;math&quot;>n</span>.">
+        <span class="opt-label">C</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">1</span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="C"><div class="feedback-status"></div><div class="feedback-rationale">This would require <span class="math">sin(nπ)</span> to equal <span class="math">1</span>, but <span class="math">sin(nπ) = 0</span> for every integer <span class="math">n</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="D" data-correct="false" data-rationale="This value does not follow from the cosine integral. The boundary term <span class=&quot;math&quot;>sin(nπ)</span> is zero for every integer <span class=&quot;math&quot;>n</span>.">
+        <span class="opt-label">D</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">2</span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="D"><div class="feedback-status"></div><div class="feedback-rationale">This value does not follow from the cosine integral. The boundary term <span class="math">sin(nπ)</span> is zero for every integer <span class="math">n</span>.</div></div>
+    </div>
+  </div>
+  <button class="submit-btn" disabled>✓ Submit Answer</button>
+  <button class="next-btn hidden">Next Question →</button>
+</div>
+      <div class="question late-question" data-index="7">
+  <div class="q-header">
+    <span class="q-number">Question 8</span>
+    <span class="q-of">/ 10</span>
+  </div>
+  <div class="q-text">Evaluating <span class="math-display">∫<sub>0</sub><sup>π</sup> sin(nt) dt</span> yields which general expression for integer <span class="math">n</span>?</div>
+  <div class="hint-box">
+    <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">💡 Hint</button>
+    <div class="hint-content">The antiderivative of <span class="math">sin(nt)</span> is <span class="math">−cos(nt)/n</span>. Carefully evaluate both limits.</div>
+  </div>
+  <div class="options">
+    <div class="option-wrapper">
+      <button class="option" data-label="A" data-correct="false" data-rationale="This would be true for the cosine integral, but the sine integral is non-zero when <span class=&quot;math&quot;>n</span> is odd.">
+        <span class="opt-label">A</span>
+        <span class="opt-text"><span class="math">0</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="A"><div class="feedback-status"></div><div class="feedback-rationale">This would be true for the cosine integral, but the sine integral is non-zero when <span class="math">n</span> is odd.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="B" data-correct="true" data-rationale="Using <span class=&quot;math&quot;>[−cos(nt)/n]<sub>0</sub><sup>π</sup></span> gives <span class=&quot;math&quot;>(−cos(nπ) + 1)/n = (1 − cos(nπ))/n</span>.">
+        <span class="opt-label">B</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">1 − cos(nπ)</span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="B"><div class="feedback-status"></div><div class="feedback-rationale">Using <span class="math">[−cos(nt)/n]<sub>0</sub><sup>π</sup></span> gives <span class="math">(−cos(nπ) + 1)/n = (1 − cos(nπ))/n</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="C" data-correct="false" data-rationale="The plus sign is incorrect. Subtracting the lower-limit value <span class=&quot;math&quot;>−cos(0)/n = −1/n</span> gives the numerator <span class=&quot;math&quot;>1 − cos(nπ)</span>.">
+        <span class="opt-label">C</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">1 + cos(nπ)</span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="C"><div class="feedback-status"></div><div class="feedback-rationale">The plus sign is incorrect. Subtracting the lower-limit value <span class="math">−cos(0)/n = −1/n</span> gives the numerator <span class="math">1 − cos(nπ)</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="D" data-correct="false" data-rationale="This uses <span class=&quot;math&quot;>sin(nπ)/n</span>, which corresponds to evaluating the antiderivative of cosine rather than sine.">
+        <span class="opt-label">D</span>
+        <span class="opt-text"><span class="math"><span class="frac"><span class="frac-num">sin(nπ)</span><span class="frac-den">n</span></span></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="D"><div class="feedback-status"></div><div class="feedback-rationale">This uses <span class="math">sin(nπ)/n</span>, which corresponds to evaluating the antiderivative of cosine rather than sine.</div></div>
+    </div>
+  </div>
+  <button class="submit-btn" disabled>✓ Submit Answer</button>
+  <button class="next-btn hidden">Next Question →</button>
+</div>
+      <div class="question late-question" data-index="8">
+  <div class="q-header">
+    <span class="q-number">Question 9</span>
+    <span class="q-of">/ 10</span>
+  </div>
+  <div class="q-text">When applying integration by parts to <span class="math-display">∫<sub>t<sub>1</sub></sub><sup>t<sub>2</sub></sup> t cos(at) dt</span> what is the assembled expression before evaluating the limits?</div>
+  <div class="hint-box">
+    <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">💡 Hint</button>
+    <div class="hint-content">Set <span class="math">u = t</span> and <span class="math">dv = cos(at) dt</span>. Then <span class="math">v = sin(at)/a</span>. Use <span class="math">∫u dv = uv − ∫v du</span>.</div>
+  </div>
+  <div class="options">
+    <div class="option-wrapper">
+      <button class="option" data-label="A" data-correct="true" data-rationale="Let <span class=&quot;math&quot;>u = t</span> and <span class=&quot;math&quot;>dv = cos(at)dt</span>, so <span class=&quot;math&quot;>v = sin(at)/a</span>. Therefore, <span class=&quot;math&quot;>∫t cos(at)dt = t sin(at)/a + cos(at)/a² + C</span>. For the definite integral, evaluate this expression at <span class=&quot;math&quot;>t<sub>1</sub></span> and <span class=&quot;math&quot;>t<sub>2</sub></span>.">
+        <span class="opt-label">A</span>
+        <span class="opt-text"><span class="math">[</span> <span class="math">t</span> <span class="frac"><span class="frac-num">sin(at)</span><span class="frac-den">a</span></span> <span class="math">+</span> <span class="frac"><span class="frac-num">cos(at)</span><span class="frac-den">a<sup>2</sup></span></span> <span class="math">]<sub>t<sub>1</sub></sub><sup>t<sub>2</sub></sup></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="A"><div class="feedback-status"></div><div class="feedback-rationale">Let <span class="math">u = t</span> and <span class="math">dv = cos(at)dt</span>, so <span class="math">v = sin(at)/a</span>. Therefore, <span class="math">∫t cos(at)dt = t sin(at)/a + cos(at)/a² + C</span>. For the definite integral, evaluate this expression at <span class="math">t<sub>1</sub></span> and <span class="math">t<sub>2</sub></span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="B" data-correct="false" data-rationale="This is the structure obtained for integrating <span class=&quot;math&quot;>t sin(at)</span>, not <span class=&quot;math&quot;>t cos(at)</span>.">
+        <span class="opt-label">B</span>
+        <span class="opt-text"><span class="math">[−t</span> <span class="frac"><span class="frac-num">cos(at)</span><span class="frac-den">a</span></span> <span class="math">+</span> <span class="frac"><span class="frac-num">sin(at)</span><span class="frac-den">a<sup>2</sup></span></span> <span class="math">]<sub>t<sub>1</sub></sub><sup>t<sub>2</sub></sup></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="B"><div class="feedback-status"></div><div class="feedback-rationale">This is the structure obtained for integrating <span class="math">t sin(at)</span>, not <span class="math">t cos(at)</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="C" data-correct="false" data-rationale="The second term has the wrong sign. Since <span class=&quot;math&quot;>∫sin(at)dt = −cos(at)/a</span>, the subtraction in integration by parts makes the cosine term positive.">
+        <span class="opt-label">C</span>
+        <span class="opt-text"><span class="math">[</span> <span class="math">t</span> <span class="frac"><span class="frac-num">sin(at)</span><span class="frac-den">a</span></span> <span class="math">−</span> <span class="frac"><span class="frac-num">cos(at)</span><span class="frac-den">a<sup>2</sup></span></span> <span class="math">]<sub>t<sub>1</sub></sub><sup>t<sub>2</sub></sup></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="C"><div class="feedback-status"></div><div class="feedback-rationale">The second term has the wrong sign. Since <span class="math">∫sin(at)dt = −cos(at)/a</span>, the subtraction in integration by parts makes the cosine term positive.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="D" data-correct="false" data-rationale="The frequency factor <span class=&quot;math&quot;>a</span> is missing. Integrating <span class=&quot;math&quot;>cos(at)</span> introduces <span class=&quot;math&quot;>1/a</span>, and the second integration introduces <span class=&quot;math&quot;>1/a²</span>.">
+        <span class="opt-label">D</span>
+        <span class="opt-text"><span class="math">[t sin(at) + cos(at)]<sub>t<sub>1</sub></sub><sup>t<sub>2</sub></sup></span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="D"><div class="feedback-status"></div><div class="feedback-rationale">The frequency factor <span class="math">a</span> is missing. Integrating <span class="math">cos(at)</span> introduces <span class="math">1/a</span>, and the second integration introduces <span class="math">1/a²</span>.</div></div>
+    </div>
+  </div>
+  <button class="submit-btn" disabled>✓ Submit Answer</button>
+  <button class="next-btn hidden">Next Question →</button>
+</div>
+      <div class="question late-question" data-index="9">
+  <div class="q-header">
+    <span class="q-number">Question 10</span>
+    <span class="q-of">/ 10</span>
+  </div>
+  <div class="q-text">A periodic signal is defined as <span class="math">x(t) = t</span> for <span class="math">0 ≤ t ≤ T/2</span> and <span class="math">x(t) = 0</span> for <span class="math">T/2 &lt; t ≤ T</span>. How is the integral simplified?<span class="math-display">∫<sub>0</sub><sup>T</sup> x(t) cos(nω<sub>0</sub>t) dt</span></div>
+  <div class="hint-box">
+    <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">💡 Hint</button>
+    <div class="hint-content">Split the integral at <span class="math">T/2</span>. The second interval contributes zero because <span class="math">x(t) = 0</span> there.</div>
+  </div>
+  <div class="options">
+    <div class="option-wrapper">
+      <button class="option" data-label="A" data-correct="false" data-rationale="The signal is zero from <span class=&quot;math&quot;>T/2</span> to <span class=&quot;math&quot;>T</span>, so this interval does not contain the non-zero contribution.">
+        <span class="opt-label">A</span>
+        <span class="opt-text"><span class="math-display">∫<sub>T/2</sub><sup>T</sup> t cos(nω<sub>0</sub>t) dt</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="A"><div class="feedback-status"></div><div class="feedback-rationale">The signal is zero from <span class="math">T/2</span> to <span class="math">T</span>, so this interval does not contain the non-zero contribution.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="B" data-correct="false" data-rationale="This incorrectly uses <span class=&quot;math&quot;>x(t) = t</span> over the entire period, even though <span class=&quot;math&quot;>x(t) = 0</span> for <span class=&quot;math&quot;>T/2 &lt; t ≤ T</span>.">
+        <span class="opt-label">B</span>
+        <span class="opt-text"><span class="math-display">∫<sub>0</sub><sup>T</sup> t cos(nω<sub>0</sub>t) dt</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="B"><div class="feedback-status"></div><div class="feedback-rationale">This incorrectly uses <span class="math">x(t) = t</span> over the entire period, even though <span class="math">x(t) = 0</span> for <span class="math">T/2 &lt; t ≤ T</span>.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="C" data-correct="true" data-rationale="Split the integral into <span class=&quot;math&quot;>0</span> to <span class=&quot;math&quot;>T/2</span> and <span class=&quot;math&quot;>T/2</span> to <span class=&quot;math&quot;>T</span>. The second part contains <span class=&quot;math&quot;>0 · cos(nω<sub>0</sub>t)</span>, so it vanishes, leaving only the first integral.">
+        <span class="opt-label">C</span>
+        <span class="opt-text"><span class="math-display">∫<sub>0</sub><sup>T/2</sup> t cos(nω<sub>0</sub>t) dt</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="C"><div class="feedback-status"></div><div class="feedback-rationale">Split the integral into <span class="math">0</span> to <span class="math">T/2</span> and <span class="math">T/2</span> to <span class="math">T</span>. The second part contains <span class="math">0 · cos(nω<sub>0</sub>t)</span>, so it vanishes, leaving only the first integral.</div></div>
+    </div>
+    <div class="option-wrapper">
+      <button class="option" data-label="D" data-correct="false" data-rationale="The factor <span class=&quot;math&quot;>t</span> must remain because <span class=&quot;math&quot;>x(t) = t</span> on the interval from <span class=&quot;math&quot;>0</span> to <span class=&quot;math&quot;>T/2</span>.">
+        <span class="opt-label">D</span>
+        <span class="opt-text"><span class="math-display">∫<sub>0</sub><sup>T/2</sup> cos(nω<sub>0</sub>t) dt</span></span>
+      </button>
+      <div class="option-feedback hidden" data-for="D"><div class="feedback-status"></div><div class="feedback-rationale">The factor <span class="math">t</span> must remain because <span class="math">x(t) = t</span> on the interval from <span class="math">0</span> to <span class="math">T/2</span>.</div></div>
+    </div>
+  </div>
+  <button class="submit-btn" disabled>✓ Submit Answer</button>
+  <button class="next-btn hidden">Next Question →</button>
+</div>
+      <div class="results" id="results">
+    <h2>Quiz Complete!</h2>
+    <div class="score" id="score">0%</div>
+    <div class="score-text" id="score-text"></div>
+    <button class="restart-btn" onclick="restart()">Try Again</button>
+  </div>
+</div>
+
+<div class="quiz-modal" id="quizModal" role="dialog" aria-modal="true" aria-labelledby="quizModalTitle">
+  <div class="quiz-modal-card">
+    <div class="quiz-modal-icon hidden" id="quizModalIcon"></div>
+    <div class="quiz-modal-title" id="quizModalTitle">Correct!</div>
+    <div class="quiz-modal-message" id="quizModalMessage"></div>
+    <button class="quiz-modal-close" onclick="closePopup()">Continue</button>
+  </div>
+</div>
+
+<script>
+
+const quizData = [{"question":"What is the result of evaluating the indefinite integral $\\int (3t^2 - 4t + 5) dt$?","hint":"Apply the power rule to each component individually and remember to divide by the incremented exponent.","options":[{"label":"A","text":"$t^3 - 2t^2 + C$","isCorrect":false,"rationale":"This expression omits integrating the constant term $5$, which requires attaching the variable factor $t$."},{"label":"B","text":"$t^3 - 2t^2 + 5t + C$","isCorrect":true,"rationale":"Applying the power rule term-by-term yields $\\frac{3t^3}{3} - \\frac{4t^2}{2} + 5t + C$, which simplifies directly to $t^3 - 2t^2 + 5t + C$."},{"label":"C","text":"$3t^3 - 4t^2 + 5t + C$","isCorrect":false,"rationale":"This option stems from incrementing exponents without dividing each term by its new power value."},{"label":"D","text":"$6t - 4 + C$","isCorrect":false,"rationale":"This result occurs when taking the derivative of the integrand rather than calculating its indefinite integral."}]},{"question":"What is the indefinite integral $\\int 5e^{-2t} dt$?","hint":"Recall the integration rule for exponential functions, where the exponent coefficient appears in the denominator.","options":[{"label":"A","text":"$-10e^{-2t} + C$","isCorrect":false,"rationale":"This mistake comes from multiplying by the exponential constant $-2$ instead of dividing by it."},{"label":"B","text":"$-\\frac{5}{2}e^{-2t} + C$","isCorrect":true,"rationale":"Integrating $A e^{at} dt$ yields $\\frac{A}{a}e^{at} + C$, which gives $\\frac{5}{-2}e^{-2t} + C = -\\frac{5}{2}e^{-2t} + C$."},{"label":"C","text":"$\\frac{5}{2}e^{-2t} + C$","isCorrect":false,"rationale":"This choice neglects the negative sign introduced when dividing by the exponential coefficient $a = -2$."},{"label":"D","text":"$-\\frac{5}{2}e^{-3t} + C$","isCorrect":false,"rationale":"Exponential integration leaves the inner power coefficient untouched, unlike the algebraic power rule."}]},{"question":"What is the value of the definite integral $\\int_0^2 3t^2 dt$?","hint":"Find the general antiderivative using the power rule before plugging in the upper and lower boundaries.","options":[{"label":"A","text":"$24$","isCorrect":false,"rationale":"This error occurs when forgetting to divide $3t^3$ by $3$ during antiderivative formation, evaluating $3(2^3)$ instead."},{"label":"B","text":"$8$","isCorrect":true,"rationale":"The antiderivative of $3t^2$ is $t^3$, and evaluating $[t^3]_0^2$ gives $2^3 - 0^3 = 8$."},{"label":"C","text":"$12$","isCorrect":false,"rationale":"This arises from substituting the limit into $6t$, which is the derivative rather than the antiderivative."},{"label":"D","text":"$4$","isCorrect":false,"rationale":"This result stems from an arithmetic error when raising $2$ to the power of $3$."}]},{"question":"According to the time interval combination property, what is the evaluated result of $\\int_1^2 (3t^2 - 4) dt + \\int_2^3 (3t^2 - 4) dt$?","hint":"Combine the adjacent integration limits into a single continuous time interval before applying the fundamental theorem.","options":[{"label":"A","text":"$15$","isCorrect":false,"rationale":"This error happens when neglecting to subtract the lower boundary's negative value $-3$ correctly."},{"label":"B","text":"$18$","isCorrect":true,"rationale":"Combining the adjacent intervals gives $\\int_1^3 (3t^2 - 4) dt = [t^3 - 4t]_1^3 = (27 - 12) - (1 - 4) = 15 - (-3) = 18$."},{"label":"C","text":"$0$","isCorrect":false,"rationale":"This reflects a confusion with limit reversal laws, treating adjacent intervals as opposing canceling values."},{"label":"D","text":"$12$","isCorrect":false,"rationale":"This value results from evaluating only at the upper bound $t=3$ while omitting the lower bound subtraction step entirely."}]},{"question":"What is the result of integrating $\\int t e^{-t} dt$ using integration by parts?","hint":"Assign $u$ to the algebraic component and $dv$ to the exponential part before applying $uv - \\int v du$.","options":[{"label":"A","text":"$-e^{-t} + C$","isCorrect":false,"rationale":"This leaves out the primary product term $u \\cdot v$, keeping only the integrated residual portion."},{"label":"B","text":"$-t e^{-t} + e^{-t} + C$","isCorrect":false,"rationale":"This choice results from a sign mistake when integrating the secondary term $-\\int (-e^{-t}) dt$."},{"label":"C","text":"$-t e^{-t} - e^{-t} + C$","isCorrect":true,"rationale":"Setting $u = t$ and $dv = e^{-t} dt$ gives $du = dt$ and $v = -e^{-t}$; applying $uv - \\int v du$ yields $-t e^{-t} - \\int (-e^{-t}) dt = -t e^{-t} - e^{-t} + C$."},{"label":"D","text":"$t e^{-t} - e^{-t} + C$","isCorrect":false,"rationale":"This answer incorrectly drops the initial negative sign from $v = -e^{-t}$ in the $u \\cdot v$ term."}]},{"question":"What is the result of evaluating the indefinite integral $\\int 4\\cos(3t) dt$?","hint":"Remember that cosine integrates to positive sine, and the inner frequency factor must divide the coefficient.","options":[{"label":"A","text":"$\\frac{4}{3}\\cos(3t) + C$","isCorrect":false,"rationale":"This option fails to transform the trigonometric function from cosine to sine."},{"label":"B","text":"$-\\frac{4}{3}\\sin(3t) + C$","isCorrect":false,"rationale":"This mistake comes from applying the sine integration sign convention (which yields negative cosine) to cosine."},{"label":"C","text":"$12\\sin(3t) + C$","isCorrect":false,"rationale":"This calculation incorrectly multiplies by the inner frequency factor instead of placing it in the denominator."},{"label":"D","text":"$\\frac{4}{3}\\sin(3t) + C$","isCorrect":true,"rationale":"Integrating $\\cos(at)$ gives $\\frac{1}{a}\\sin(at) + C$, so multiplying by constant $4$ produces $\\frac{4}{3}\\sin(3t) + C$."}]},{"question":"What is the value of $\\int_0^\\pi \\cos(nt) dt$ for any non-zero integer $n$?","hint":"Consider the value of the sine function at integer multiples of $\\pi$ when evaluating boundaries.","options":[{"label":"A","text":"$\\frac{1 - (-1)^n}{n}$","isCorrect":false,"rationale":"This formula belongs to the definite integral of $\\sin(nt)$ over the interval $[0, \\pi]$, not cosine."},{"label":"B","text":"$0$","isCorrect":true,"rationale":"Evaluating $[\\frac{\\sin(nt)}{n}]_0^\\pi$ gives $\\frac{\\sin(n\\pi) - \\sin(0)}{n}$; since $\\sin(n\\pi) = 0$ for all integer $n$, the result is universally zero."},{"label":"C","text":"$\\frac{1}{n}$","isCorrect":false,"rationale":"This value incorrectly assumes that $\\sin(n\\pi)$ evaluates to $1$ instead of $0$."},{"label":"D","text":"$\\frac{2}{n}$","isCorrect":false,"rationale":"This distractor confuses the cosine result with the definite integral of sine over odd integer values."}]},{"question":"Evaluating $\\int_0^\\pi \\sin(nt) dt$ yields which general expression for integer $n$?","hint":"Sine integrates to negative cosine; carefully expand the lower limit evaluation at $t=0$ where $\\cos(0)=1$.","options":[{"label":"A","text":"$0$","isCorrect":false,"rationale":"This incorrectly treats sine like cosine, ignoring that $\\cos(0) = 1$ creates a non-zero numerator when $n$ is odd."},{"label":"B","text":"$\\frac{1 - \\cos(n\\pi)}{n}$","isCorrect":true,"rationale":"Evaluating $[-\\frac{\\cos(nt)}{n}]_0^\\pi$ gives $\\frac{-\\cos(n\\pi) - (-\\cos(0))}{n} = \\frac{1 - \\cos(n\\pi)}{n}$."},{"label":"C","text":"$\\frac{1 + \\cos(n\\pi)}{n}$","isCorrect":false,"rationale":"This contains a sign error when subtracting the lower limit evaluation $-\\cos(0) = -1$."},{"label":"D","text":"$\\frac{\\sin(n\\pi)}{n}$","isCorrect":false,"rationale":"This choice incorrectly integrates sine to positive sine instead of negative cosine."}]},{"question":"When applying integration by parts to $\\int_{t_1}^{t_2} t \\cos(at) dt$, what is the assembled antiderivative expression before evaluating limits?","hint":"Set $u=t$ and $dv=\\cos(at)dt$; remember that integrating the secondary sine term introduces another negative sign.","options":[{"label":"A","text":"$\\left[ t \\left(\\frac{\\sin(at)}{a}\\right) + \\frac{\\cos(at)}{a^2} \\right]_{t_1}^{t_2}$","isCorrect":true,"rationale":"With $u=t$ and $dv=\\cos(at)dt$, $v=\\frac{\\sin(at)}{a}$; applying formula $uv - \\int v du$ yields $t \\frac{\\sin(at)}{a} - \\int \\frac{\\sin(at)}{a} dt = t \\frac{\\sin(at)}{a} + \\frac{\\cos(at)}{a^2}$."},{"label":"B","text":"$\\left[ -t \\left(\\frac{\\cos(at)}{a}\\right) + \\frac{\\sin(at)}{a^2} \\right]_{t_1}^{t_2}$","isCorrect":false,"rationale":"This expression is the antiderivative architecture for $\\int t \\sin(at) dt$, rather than $t \\cos(at)$."},{"label":"C","text":"$\\left[ t \\left(\\frac{\\sin(at)}{a}\\right) - \\frac{\\cos(at)}{a^2} \\right]_{t_1}^{t_2}$","isCorrect":false,"rationale":"This option stems from a sign error when integrating the secondary term $\\int \\sin(at) dt$, which produces negative cosine."},{"label":"D","text":"$[t \\sin(at) + \\cos(at)]_{t_1}^{t_2}$","isCorrect":false,"rationale":"This result omits the required inner frequency scaling factor $a$ in the denominators."}]},{"question":"A periodic signal is defined as $x(t) = t$ for $0 \\le t \\le T/2$ and $x(t) = 0$ for $T/2 < t \\le T$. How is the integral $\\int_0^T x(t) \\cos(n\\omega_0 t) dt$ simplified?","hint":"Break the integral into two sub-intervals matching the piecewise definitions and evaluate the term containing zero.","options":[{"label":"A","text":"$\\int_{T/2}^T t \\cos(n\\omega_0 t) dt$","isCorrect":false,"rationale":"This misapplies the non-zero definition to the interval where the signal is defined to be zero."},{"label":"B","text":"$\\int_0^T t \\cos(n\\omega_0 t) dt$","isCorrect":false,"rationale":"This incorrectly extends the formula $x(t) = t$ across the entire period $T$, ignoring the zero interval."},{"label":"C","text":"$\\int_0^{T/2} t \\cos(n\\omega_0 t) dt$","isCorrect":true,"rationale":"Splitting the integral into $\\int_0^{T/2} t \\cos(n\\omega_0 t) dt + \\int_{T/2}^T 0 \\cdot \\cos(n\\omega_0 t) dt$ eliminates the second interval entirely, leaving only the first portion."},{"label":"D","text":"$\\int_0^{T/2} \\cos(n\\omega_0 t) dt$","isCorrect":false,"rationale":"This option mistakenly drops the factor $t$ from $x(t) = t$ inside the integrand."}]}];
+
+let currentQ = 0;
+let correctCount = 0;
+let answered = false;
+let selectedOption = null;
+
+function init() {
+  const questions = document.querySelectorAll('.question');
+
+  questions.forEach((q, i) => {
+    q.classList.toggle('active', i === 0);
+  });
+
+  document.querySelectorAll('.option').forEach(opt => {
+    opt.addEventListener('click', () => selectOption(opt));
+  });
+
+  document.querySelectorAll('.submit-btn').forEach(btn => {
+    btn.addEventListener('click', submitAnswer);
+  });
+
+  document.querySelectorAll('.next-btn').forEach(btn => {
+    btn.addEventListener('click', nextQuestion);
+  });
+
+  updateProgress();
+}
+
+function selectOption(opt) {
+  if (answered) return;
+
+  const q = opt.closest('.question');
+  q.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  opt.classList.add('selected');
+
+  selectedOption = opt;
+  q.querySelector('.submit-btn').disabled = false;
+}
+
+function submitAnswer() {
+  if (answered || !selectedOption) return;
+
+  answered = true;
+
+  const q = selectedOption.closest('.question');
+  const options = q.querySelectorAll('.option');
+  const submitBtn = q.querySelector('.submit-btn');
+  const nextBtn = q.querySelector('.next-btn');
+  const isCorrect = selectedOption.dataset.correct === 'true';
+
+  options.forEach(o => o.classList.add('disabled'));
+  submitBtn.disabled = true;
+
+  selectedOption.classList.remove('selected');
+  selectedOption.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+  // Show explanations and status for ALL answer choices.
+  q.querySelectorAll('.option-feedback').forEach(feedback => {
+    feedback.classList.remove('hidden');
+    feedback.classList.remove('correct-feedback', 'incorrect-feedback');
+
+    const label = feedback.dataset.for;
+    const opt = q.querySelector(`.option[data-label="${label}"]`);
+    const status = feedback.querySelector('.feedback-status');
+
+    if (opt && status) {
+      const optionIsCorrect = opt.dataset.correct === 'true';
+      if (optionIsCorrect) {
+        status.className = 'feedback-status correct';
+        status.innerHTML = '✓ Correct answer';
+        feedback.classList.add('correct-feedback');
+      } else {
+        status.className = 'feedback-status incorrect';
+        status.innerHTML = '✗ Incorrect';
+        feedback.classList.add('incorrect-feedback');
+      }
+    }
+  });
+
+  if (isCorrect) {
+    correctCount++;
+  } else {
+    // Highlight the correct answer in green.
+    const correctOpt = [...options].find(o => o.dataset.correct === 'true');
+    if (correctOpt) correctOpt.classList.add('show-correct');
+  }
+
+  nextBtn.classList.remove('hidden');
+  if (currentQ === quizData.length - 1) {
+    nextBtn.textContent = 'See Results';
+  }
+
+  showPopup(isCorrect);
+}
+
+function showPopup(isCorrect) {
+  const modal = document.getElementById('quizModal');
+  const icon = document.getElementById('quizModalIcon');
+  const title = document.getElementById('quizModalTitle');
+  const message = document.getElementById('quizModalMessage');
+
+  if (isCorrect) {
+    icon.textContent = '';
+    title.textContent = '🎉 Correct!';
+    title.classList.remove('incorrect');
+    message.innerHTML = '<strong>Well done!</strong><br>Your answer is correct.';
+  } else {
+    icon.textContent = '';
+    title.textContent = '💡 Incorrect!';
+    title.classList.add('incorrect');
+    message.innerHTML = '<strong>Keep trying!</strong><br>The correct answer is highlighted in green. You can review the explanations for all answer choices below the options.';
+  }
+
+  modal.classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('quizModal').classList.remove('show');
+}
+
+function nextQuestion() {
+  closePopup();
+  currentQ++;
+  answered = false;
+  selectedOption = null;
+
+  if (currentQ >= quizData.length) {
+    showResults();
+    return;
+  }
+
+  document.querySelectorAll('.question').forEach((q, i) => {
+    q.classList.toggle('active', i === currentQ);
+  });
+
+  updateProgress();
+}
+
+function updateProgress() {
+  const fill = document.querySelector('.progress-fill');
+  if (fill) {
+    fill.style.width = ((currentQ / quizData.length) * 100) + '%';
+  }
+}
+
+function showResults() {
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+  document.getElementById('results').classList.add('active');
+
+  const pct = Math.round((correctCount / quizData.length) * 100);
+  document.getElementById('score').textContent = pct + '%';
+  document.getElementById('score-text').textContent =
+    `You got ${correctCount} out of ${quizData.length} correct`;
+
+  const fill = document.querySelector('.progress-fill');
+  if (fill) fill.style.width = '100%';
+}
+
+function restart() {
+  closePopup();
+  currentQ = 0;
+  correctCount = 0;
+  answered = false;
+  selectedOption = null;
+
+  document.getElementById('results').classList.remove('active');
+
+  document.querySelectorAll('.question').forEach((q, i) => {
+    q.classList.toggle('active', i === 0);
+
+    q.querySelectorAll('.option').forEach(o => {
+      o.classList.remove('selected', 'correct', 'incorrect', 'disabled', 'show-correct');
+    });
+
+    q.querySelectorAll('.option-feedback').forEach(f => {
+      f.classList.add('hidden');
+      f.classList.remove('correct-feedback', 'incorrect-feedback');
+      const status = f.querySelector('.feedback-status');
+      if (status) status.innerHTML = '';
+    });
+
+    const submit = q.querySelector('.submit-btn');
+    if (submit) submit.disabled = true;
+
+    const next = q.querySelector('.next-btn');
+    if (next) {
+      next.classList.add('hidden');
+      next.textContent = 'Next Question →';
+    }
+  });
+
+  updateProgress();
+}
+
+init();
+
+</script>
+</body>
+</html>
